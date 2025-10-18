@@ -175,7 +175,9 @@
       <select id="opSel"><option value="+">+</option><option value="-">-</option></select>
       <input type="number" id="bVal" placeholder="B"/> =
       <input type="number" id="cVal" placeholder="C"/>
+      <button class="new-btn" id="goManual">Calcular</button>
     `;
+                document.getElementById('goManual').onclick = startManual;
             } else {
                 const { a, b, c, op, missing } = values;
                 const A = missing === 'a' ? '?' : a;
@@ -193,15 +195,18 @@
             let a = aVal == '' ? null : Number(aVal);
             let b = bVal == '' ? null : Number(bVal);
             let c = cVal == '' ? null : Number(cVal);
-            if (a === null) values.missing = 'a';
-            else if (b === null) values.missing = 'b';
-            else if (c === null) values.missing = 'c';
-            else values.missing = null;
-            if (values.missing === 'a') a = (op === '+') ? c - b : c + b;
-            if (values.missing === 'b') b = (op === '+') ? c - a : a - c;
-            if (values.missing === 'c') c = (op === '+') ? a + b : a - b;
-            values = { a, b, c, op, missing: values.missing };
+            let missing = null;
+            if (a === null) missing = 'a';
+            else if (b === null) missing = 'b';
+            else if (c === null) missing = 'c';
+            if (missing === 'a') a = (op === '+') ? c - b : c + b;
+            if (missing === 'b') b = (op === '+') ? c - a : a - c;
+            if (missing === 'c') c = (op === '+') ? a + b : a - b;
+            values = { a, b, c, op, missing };
+            output.innerHTML = '';
+            currentStep = 0;
             renderInputs(false);
+            nextBtn.disabled = false;
         }
 
         function decomposeParts(n) {
@@ -229,12 +234,12 @@
                 let [tC, uC] = tensUnits(c); let [tB, uB] = tensUnits(b);
                 if (invOp === '-') {
                     s.push(`Calcular por ordens: ( ${tC} − ${tB} ) <small>(dezenas)</small> + ( ${uC} − ${uB} ) <small>(unidades)</small>`);
-                    const partial1 = tC - tB; const partial2 = uC - uB; const res = partial1 + partial2;
-                    s.push(formatFinal(partial1, partial2, res, '-'));
+                    const p1 = tC - tB; const p2 = uC - uB; const res = p1 + p2;
+                    s.push(formatFinal(p1, p2, res, '-'));
                 } else {
                     s.push(`Calcular por ordens: ( ${tC} + ${tB} ) <small>(dezenas)</small> + ( ${uC} + ${uB} ) <small>(unidades)</small>`);
-                    const partial1 = tC + tB; const partial2 = uC + uB; const res = partial1 + partial2;
-                    s.push(formatFinal(partial1, partial2, res, '+'));
+                    const p1 = tC + tB; const p2 = uC + uB; const res = p1 + p2;
+                    s.push(formatFinal(p1, p2, res, '+'));
                 }
             } else if (missing === 'b') {
                 if (op === '+') {
@@ -286,17 +291,7 @@
         }
 
         document.getElementById('autoMode').addEventListener('click', () => { mode = 'auto'; setupInputs(false); });
-        document.getElementById('manualMode').addEventListener('click', () => {
-            mode = 'manual'; inputZone.innerHTML = ''; output.innerHTML = ''; nextBtn.disabled = false;
-            inputZone.innerHTML = `
-  <input type="number" id="aVal" placeholder="A"/> 
-  <select id="opSel"><option value="+">+</option><option value="-">-</option></select>
-  <input type="number" id="bVal" placeholder="B"/> =
-  <input type="number" id="cVal" placeholder="C"/>
-  <button class="new-btn" id="goManual">Calcular</button>
-`;
-            document.getElementById('goManual').onclick = startManual;
-        });
+        document.getElementById('manualMode').addEventListener('click', () => { mode = 'manual'; setupInputs(true); });
         nextBtn.addEventListener('click', showStep);
     </script>
 </body>
