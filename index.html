@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: 'Comic Sans MS', 'Nunito', sans-serif;
-            background-color: #fffaf5;
+            background: #fffaf5;
             color: #333;
             margin: 0;
             padding: 20px;
@@ -17,11 +17,11 @@
         }
 
         .app {
-            width: 800px;
+            width: 900px;
             max-width: 95vw;
-            background: #ffffff;
+            background: #fff;
             border-radius: 20px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .1);
             padding: 20px 30px;
         }
 
@@ -34,7 +34,7 @@
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         button {
@@ -43,23 +43,23 @@
             border-radius: 12px;
             padding: 12px 20px;
             cursor: pointer;
-            transition: 0.2s;
+            transition: .2s;
         }
 
         button:hover {
-            opacity: 0.85;
+            opacity: .9;
         }
 
         .mode-btn {
-            background-color: #a5d8ff;
+            background: #a5d8ff;
         }
 
         .next-btn {
-            background-color: #ffd6a5;
+            background: #ffd6a5;
         }
 
         .new-btn {
-            background-color: #b9fbc0;
+            background: #b9fbc0;
         }
 
         .inputs {
@@ -67,17 +67,18 @@
             justify-content: center;
             align-items: center;
             gap: 10px;
-            margin: 20px 0;
+            margin: 16px 0;
             font-size: 2rem;
+            flex-wrap: wrap;
         }
 
         input[type=number] {
-            width: 90px;
+            width: 120px;
             text-align: center;
             font-size: 2rem;
             border-radius: 10px;
             border: 2px solid #ccc;
-            background-color: #f1f5f9;
+            background: #f1f5f9;
         }
 
         select {
@@ -100,12 +101,17 @@
             margin: 10px 0;
             padding: 10px;
             border-radius: 12px;
-            background-color: #e7f5ff;
+            background: #e7f5ff;
         }
 
         .highlight {
             color: #0077b6;
-            font-weight: bold;
+            font-weight: 700;
+        }
+
+        small.tag {
+            color: #555;
+            font-size: .9rem;
         }
     </style>
 </head>
@@ -115,11 +121,12 @@
         <h1>Decomposição passo a passo</h1>
 
         <div style="text-align:center; margin-bottom:10px;">
-            <label for="limit">Limite máximo:</label>
+            <label for="limit">Limite máximo (modo aleatório):</label>
             <select id="limit">
                 <option value="99">99</option>
                 <option value="999">999</option>
-                <option value="9999">9999</option>
+                <option value="9999" selected>9999</option>
+                <option value="99999">99999</option>
             </select>
         </div>
 
@@ -141,27 +148,29 @@
         const output = document.getElementById('output');
         const nextBtn = document.getElementById('nextBtn');
 
-        let mode = null;
-        let currentStep = 0;
-        let steps = [];
+        let mode = null;            // 'auto' | 'manual'
+        let currentStep = 0;        // índice do passo
+        let steps = [];             // lista de strings a mostrar
         let values = { a: null, b: null, c: null, op: null, missing: null };
 
+        // ----- Utilitários -----
+        const ORDERS = [10000, 1000, 100, 10, 1];
+        const ORDER_LABEL = { 10000: 'milhares', 1000: 'milhares', 100: 'centenas', 10: 'dezenas', 1: 'unidades' }; // 10k partilha etiqueta 'milhares'
         function randomInt(max) { return Math.floor(Math.random() * (max + 1)); }
         function chooseMissing() { return ['a', 'b', 'c'][Math.floor(Math.random() * 3)]; }
+
         function generateRandom(limit) {
             const op = Math.random() < 0.5 ? '+' : '-';
             const missing = chooseMissing();
-            let a, b, c;
-            a = randomInt(limit);
-            b = randomInt(limit);
-            if (op === '+') c = a + b; else c = a - b;
+            let a = randomInt(limit);
+            let b = randomInt(limit);
+            let c = (op === '+') ? (a + b) : (a - b);
             return { a, b, c, op, missing };
         }
 
         function setupInputs(manual = false) {
             output.innerHTML = '';
-            currentStep = 0;
-            nextBtn.disabled = false;
+            currentStep = 0; steps = []; nextBtn.disabled = false;
             if (!manual) { values = generateRandom(Number(limitSel.value)); }
             else { values = { a: null, b: null, c: null, op: '+', missing: null }; }
             renderInputs(manual);
@@ -192,84 +201,123 @@
             const bVal = document.getElementById('bVal').value;
             const cVal = document.getElementById('cVal').value;
             const op = document.getElementById('opSel').value;
-            let a = aVal == '' ? null : Number(aVal);
-            let b = bVal == '' ? null : Number(bVal);
-            let c = cVal == '' ? null : Number(cVal);
+            let a = aVal === '' ? null : Number(aVal);
+            let b = bVal === '' ? null : Number(bVal);
+            let c = cVal === '' ? null : Number(cVal);
             let missing = null;
-            if (a === null) missing = 'a';
-            else if (b === null) missing = 'b';
-            else if (c === null) missing = 'c';
-            if (missing === 'a') a = (op === '+') ? c - b : c + b;
-            if (missing === 'b') b = (op === '+') ? c - a : a - c;
-            if (missing === 'c') c = (op === '+') ? a + b : a - b;
+            if (a === null) missing = 'a'; else if (b === null) missing = 'b'; else if (c === null) missing = 'c';
+            if (missing === 'a') a = (op === '+') ? (c - b) : (c + b);
+            if (missing === 'b') b = (op === '+') ? (c - a) : (a - c);
+            if (missing === 'c') c = (op === '+') ? (a + b) : (a - b);
             values = { a, b, c, op, missing };
-            output.innerHTML = '';
-            currentStep = 0;
-            renderInputs(false);
-            nextBtn.disabled = false;
+            output.innerHTML = ''; currentStep = 0; renderInputs(false); nextBtn.disabled = false;
         }
 
-        function decomposeParts(n) {
-            if (n === 0) return '0';
-            const digits = String(Math.abs(n)).split('').reverse();
+        // Decomposição em "dígito×ordem" (da ordem mais alta para a mais baixa)
+        function decomposeFactors(n) {
+            const abs = Math.abs(n);
             const parts = [];
-            for (let i = digits.length - 1; i >= 0; i--) {
-                if (digits[i] !== '0') parts.push(`${digits[i] * (10 ** i)}`);
+            for (const ord of ORDERS) {
+                if (ord > abs && ord !== 1 && parts.length === 0) continue; // evita ordens maiores que o número sem adicionar zeros iniciais
+                const digit = Math.floor((abs % (ord * 10)) / ord);
+                if (digit !== 0) { parts.push(`${digit}×${ord}`); }
             }
+            if (parts.length === 0) return '0×1';
             return parts.join(' + ');
+        }
+
+        // Valores por ordem (ex.: 931 -> [900, 30, 1] alinhado às ORDERS existentes)
+        function valuesPerOrder(n) {
+            const abs = Math.abs(n);
+            const arr = [];
+            for (const ord of ORDERS) {
+                const digit = Math.floor((abs % (ord * 10)) / ord);
+                arr.push(digit * ord);
+            }
+            return arr; // mesmo comprimento que ORDERS
+        }
+
+        // Constrói linha do passo 3 (por ordens) e calcula parciais
+        function buildPerOrderCalc(left, right, op) {
+            const L = valuesPerOrder(left);
+            const R = valuesPerOrder(right);
+            const terms = []; // strings para mostrar
+            const partials = []; // números para somar no passo 4
+            for (let i = 0; i < ORDERS.length; i++) {
+                const label = ORDER_LABEL[ORDERS[i]];
+                const a = L[i];
+                const b = R[i];
+                if (a === 0 && b === 0) continue; // omitir ordem sem contribuição
+                if (op === '-') {
+                    terms.push(`( ${a} − ${b} ) <small class="tag">(${label})</small>`);
+                    partials.push(a - b);
+                } else {
+                    terms.push(`( ${a} + ${b} ) <small class="tag">(${label})</small>`);
+                    partials.push(a + b);
+                }
+            }
+            return { line: terms.join(' + '), partials };
+        }
+
+        // Formata a soma dos parciais evitando "+ -X" (usa " − |X|")
+        function formatSum(parts) {
+            if (parts.length === 0) return '0';
+            let out = '' + parts[0];
+            for (let i = 1; i < parts.length; i++) {
+                const v = parts[i];
+                out += v < 0 ? ` − ${Math.abs(v)}` : ` + ${v}`;
+            }
+            return out;
         }
 
         function buildSteps() {
             const { a, b, c, op, missing } = values;
-            let s = [];
-            function tensUnits(n) { return [Math.floor(n / 10) * 10, n % 10]; }
-            function formatFinal(p1, p2, res, op) {
-                const sign = op === '+' ? '+' : '−';
-                return `Resolver: ? = ${p1} ${sign} ${Math.abs(p2)} = ${res}`;
+            const s = [];
+            // helper para Passos 2 e 3 com dois números conhecidos (X op Y)
+            function buildStepsFromXY(X, Y, realOp) {
+                s.push(`Decompor: ? = (${decomposeFactors(X)}) ${realOp} (${decomposeFactors(Y)})`);
+                const { line, partials } = buildPerOrderCalc(X, Y, realOp === '−' ? '‑' : '+' === realOp ? '+' : realOp); // guard
+                // Corrigir símbolo para JS: realOp é '−' ou '+' para mostrar; para cálculo usamos '-' ou '+'
             }
+
+            // Passo 1 — Isolar incógnita
             if (missing === 'a') {
-                const invOp = op === '+' ? '-' : '+';
+                const invOp = (op === '+') ? '−' : '+'; // símbolo amigável
                 s.push(`Isolar incógnita: ? = ${c} ${invOp} ${b}`);
-                s.push(`Decompor: ? = (${decomposeParts(c)}) ${invOp} (${decomposeParts(b)})`);
-                let [tC, uC] = tensUnits(c); let [tB, uB] = tensUnits(b);
-                if (invOp === '-') {
-                    s.push(`Calcular por ordens: ( ${tC} − ${tB} ) <small>(dezenas)</small> + ( ${uC} − ${uB} ) <small>(unidades)</small>`);
-                    const p1 = tC - tB; const p2 = uC - uB; const res = p1 + p2;
-                    s.push(formatFinal(p1, p2, res, '-'));
-                } else {
-                    s.push(`Calcular por ordens: ( ${tC} + ${tB} ) <small>(dezenas)</small> + ( ${uC} + ${uB} ) <small>(unidades)</small>`);
-                    const p1 = tC + tB; const p2 = uC + uB; const res = p1 + p2;
-                    s.push(formatFinal(p1, p2, res, '+'));
-                }
-            } else if (missing === 'b') {
+                // Passo 2 — Decompor com dígito×ordem
+                s.push(`Decompor: ? = (${decomposeFactors(c)}) ${invOp} (${decomposeFactors(b)})`);
+                // Passo 3 — Calcular por ordens (c ? b)
+                const { line, partials } = buildPerOrderCalc(c, b, invOp === '−' ? '-' : '+');
+                s.push(`Calcular por ordens: ${line}`);
+                // Passo 4 — Resolver
+                const res = partials.reduce((acc, v) => acc + v, 0);
+                s.push(`Resolver: ? = ${formatSum(partials)} = ${res}`);
+            }
+            else if (missing === 'b') {
                 if (op === '+') {
                     s.push(`Isolar incógnita: ? = ${c} − ${a}`);
-                    s.push(`Decompor: ? = (${decomposeParts(c)}) − (${decomposeParts(a)})`);
-                    let [tC, uC] = tensUnits(c); let [tA, uA] = tensUnits(a);
-                    s.push(`Calcular por ordens: ( ${tC} − ${tA} ) <small>(dezenas)</small> + ( ${uC} − ${uA} ) <small>(unidades)</small>`);
-                    const p1 = tC - tA; const p2 = uC - uA; const res = p1 + p2;
-                    s.push(formatFinal(p1, p2, res, '-'));
-                } else {
+                    s.push(`Decompor: ? = (${decomposeFactors(c)}) − (${decomposeFactors(a)})`);
+                    const { line, partials } = buildPerOrderCalc(c, a, '-');
+                    s.push(`Calcular por ordens: ${line}`);
+                    const res = partials.reduce((acc, v) => acc + v, 0);
+                    s.push(`Resolver: ? = ${formatSum(partials)} = ${res}`);
+                } else { // a − ? = c  =>  ? = a − c
                     s.push(`Isolar incógnita: ? = ${a} − ${c}`);
-                    s.push(`Decompor: ? = (${decomposeParts(a)}) − (${decomposeParts(c)})`);
-                    let [tA, uA] = tensUnits(a); let [tC, uC] = tensUnits(c);
-                    s.push(`Calcular por ordens: ( ${tA} − ${tC} ) <small>(dezenas)</small> + ( ${uA} − ${uC} ) <small>(unidades)</small>`);
-                    const p1 = tA - tC; const p2 = uA - uC; const res = p1 + p2;
-                    s.push(formatFinal(p1, p2, res, '-'));
+                    s.push(`Decompor: ? = (${decomposeFactors(a)}) − (${decomposeFactors(c)})`);
+                    const { line, partials } = buildPerOrderCalc(a, c, '-');
+                    s.push(`Calcular por ordens: ${line}`);
+                    const res = partials.reduce((acc, v) => acc + v, 0);
+                    s.push(`Resolver: ? = ${formatSum(partials)} = ${res}`);
                 }
-            } else if (missing === 'c') {
-                s.push(`Isolar incógnita: ? = ${a} ${op} ${b}`);
-                s.push(`Decompor: ? = (${decomposeParts(a)}) ${op} (${decomposeParts(b)})`);
-                let [tA, uA] = tensUnits(a); let [tB, uB] = tensUnits(b);
-                if (op === '-') {
-                    s.push(`Calcular por ordens: ( ${tA} − ${tB} ) <small>(dezenas)</small> + ( ${uA} − ${uB} ) <small>(unidades)</small>`);
-                    const p1 = tA - tB; const p2 = uA - uB; const res = p1 + p2;
-                    s.push(formatFinal(p1, p2, res, '-'));
-                } else {
-                    s.push(`Calcular por ordens: ( ${tA} + ${tB} ) <small>(dezenas)</small> + ( ${uA} + ${uB} ) <small>(unidades)</small>`);
-                    const p1 = tA + tB; const p2 = uA + uB; const res = p1 + p2;
-                    s.push(formatFinal(p1, p2, res, '+'));
-                }
+            }
+            else if (missing === 'c') {
+                const sym = op === '-' ? '−' : '+';
+                s.push(`Isolar incógnita: ? = ${a} ${sym} ${b}`);
+                s.push(`Decompor: ? = (${decomposeFactors(a)}) ${sym} (${decomposeFactors(b)})`);
+                const { line, partials } = buildPerOrderCalc(a, b, op);
+                s.push(`Calcular por ordens: ${line}`);
+                const res = partials.reduce((acc, v) => acc + v, 0);
+                s.push(`Resolver: ? = ${formatSum(partials)} = ${res}`);
             }
             return s;
         }
@@ -291,7 +339,7 @@
         }
 
         document.getElementById('autoMode').addEventListener('click', () => { mode = 'auto'; setupInputs(false); });
-        document.getElementById('manualMode').addEventListener('click', () => { mode = 'manual'; setupInputs(true); });
+        document.getElementById('manualMode').addEventListener('click', () => { mode = 'manual'; setupInputs(true); /* limite visível mas ignorado */ });
         nextBtn.addEventListener('click', showStep);
     </script>
 </body>
