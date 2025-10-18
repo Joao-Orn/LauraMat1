@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decomposição passo a passo</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Nunito', sans-serif;
+            background-color: #fffaf5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app {
+            width: 800px;
+            max-width: 95vw;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #444;
+        }
+
+        .modes {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            font-size: 1rem;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .mode-btn {
+            background-color: #a5d8ff;
+        }
+
+        .next-btn {
+            background-color: #ffd6a5;
+        }
+
+        .new-btn {
+            background-color: #b9fbc0;
+        }
+
+        .inputs {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            font-size: 2rem;
+        }
+
+        input[type=number] {
+            width: 90px;
+            text-align: center;
+            font-size: 2rem;
+            border-radius: 10px;
+            border: 2px solid #ccc;
+            background-color: #f1f5f9;
+        }
+
+        select {
+            font-size: 1rem;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            padding: 5px;
+        }
+
+        .output {
+            font-size: 1.5rem;
+            text-align: center;
+            background: #fff4e6;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 150px;
+        }
+
+        .step-card {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 12px;
+            background-color: #e7f5ff;
+        }
+
+        .highlight {
+            color: #0077b6;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <h1>Decomposição passo a passo</h1>
+
+        <div style="text-align:center; margin-bottom:10px;">
+            <label for="limit">Limite máximo:</label>
+            <select id="limit">
+                <option value="99">99</option>
+                <option value="999">999</option>
+                <option value="9999">9999</option>
+            </select>
+        </div>
+
+        <div class="modes">
+            <button class="mode-btn" id="autoMode">Modo Aleatório</button>
+            <button class="mode-btn" id="manualMode">Modo Manual</button>
+        </div>
+
+        <div class="inputs" id="inputZone"></div>
+        <div style="text-align:center;">
+            <button class="next-btn" id="nextBtn" disabled>Próximo passo ▶️</button>
+        </div>
+        <div class="output" id="output"></div>
+    </div>
+
+    <script>
+        const limitSel = document.getElementById('limit');
+        const inputZone = document.getElementById('inputZone');
+        const output = document.getElementById('output');
+        const nextBtn = document.getElementById('nextBtn');
+
+        let mode = null;
+        let currentStep = 0;
+        let steps = [];
+        let values = { a: null, b: null, c: null, op: null, missing: null };
+
+        function randomInt(max) { return Math.floor(Math.random() * (max + 1)); }
+        function chooseMissing() { return ['a', 'b', 'c'][Math.floor(Math.random() * 3)]; }
+        function generateRandom(limit) {
+            const op = Math.random() < 0.5 ? '+' : '-';
+            const missing = chooseMissing();
+            let a, b, c;
+            a = randomInt(limit);
+            b = randomInt(limit);
+            if (op === '+') c = a + b; else c = a - b;
+            return { a, b, c, op, missing };
+        }
+
+        function setupInputs(manual = false) {
+            output.innerHTML = '';
+            currentStep = 0;
+            nextBtn.disabled = false;
+            if (!manual) { values = generateRandom(Number(limitSel.value)); }
+            else { values = { a: null, b: null, c: null, op: '+', missing: null }; }
+            renderInputs(manual);
+        }
+
+        function renderInputs(manual) {
+            inputZone.innerHTML = '';
+            if (manual) {
+                inputZone.innerHTML = `
+      <input type="number" id="aVal" placeholder="A"/> 
+      <select id="opSel"><option value="+">+</option><option value="-">-</option></select>
+      <input type="number" id="bVal" placeholder="B"/> =
+      <input type="number" id="cVal" placeholder="C"/>
+    `;
+            } else {
+                const { a, b, c, op, missing } = values;
+                const A = missing === 'a' ? '?' : a;
+                const B = missing === 'b' ? '?' : b;
+                const C = missing === 'c' ? '?' : c;
+                inputZone.innerHTML = `<span class="highlight" style="font-size:2.5rem;">${A}</span> ${op} <span class="highlight" style="font-size:2.5rem;">${B}</span> = <span class="highlight" style="font-size:2.5rem;">${C}</span>`;
+            }
+        }
+
+        function startManual() {
+            const aVal = document.getElementById('aVal').value;
+            const bVal = document.getElementById('bVal').value;
+            const cVal = document.getElementById('cVal').value;
+            const op = document.getElementById('opSel').value;
+            let a = aVal == '' ? null : Number(aVal);
+            let b = bVal == '' ? null : Number(bVal);
+            let c = cVal == '' ? null : Number(cVal);
+            if (a === null) values.missing = 'a';
+            else if (b === null) values.missing = 'b';
+            else if (c === null) values.missing = 'c';
+            else values.missing = null;
+            if (values.missing === 'a') a = (op === '+') ? c - b : c + b;
+            if (values.missing === 'b') b = (op === '+') ? c - a : a - c;
+            if (values.missing === 'c') c = (op === '+') ? a + b : a - b;
+            values = { a, b, c, op, missing: values.missing };
+            renderInputs(false);
+        }
+
+        function decomposeParts(n) {
+            if (n === 0) return '0';
+            const digits = String(Math.abs(n)).split('').reverse();
+            const parts = [];
+            for (let i = digits.length - 1; i >= 0; i--) {
+                if (digits[i] !== '0') parts.push(`${digits[i] * (10 ** i)}`);
+            }
+            return parts.join(' + ');
+        }
+
+        function buildSteps() {
+            const { a, b, c, op, missing } = values;
+            let s = [];
+            function tensUnits(n) { return [Math.floor(n / 10) * 10, n % 10]; }
+            function formatFinal(p1, p2, res, op) {
+                const sign = op === '+' ? '+' : '−';
+                return `Resolver: ? = ${p1} ${sign} ${Math.abs(p2)} = ${res}`;
+            }
+            if (missing === 'a') {
+                const invOp = op === '+' ? '-' : '+';
+                s.push(`Isolar incógnita: ? = ${c} ${invOp} ${b}`);
+                s.push(`Decompor: ? = (${decomposeParts(c)}) ${invOp} (${decomposeParts(b)})`);
+                let [tC, uC] = tensUnits(c); let [tB, uB] = tensUnits(b);
+                if (invOp === '-') {
+                    s.push(`Calcular por ordens: ( ${tC} − ${tB} ) <small>(dezenas)</small> + ( ${uC} − ${uB} ) <small>(unidades)</small>`);
+                    const partial1 = tC - tB; const partial2 = uC - uB; const res = partial1 + partial2;
+                    s.push(formatFinal(partial1, partial2, res, '-'));
+                } else {
+                    s.push(`Calcular por ordens: ( ${tC} + ${tB} ) <small>(dezenas)</small> + ( ${uC} + ${uB} ) <small>(unidades)</small>`);
+                    const partial1 = tC + tB; const partial2 = uC + uB; const res = partial1 + partial2;
+                    s.push(formatFinal(partial1, partial2, res, '+'));
+                }
+            } else if (missing === 'b') {
+                if (op === '+') {
+                    s.push(`Isolar incógnita: ? = ${c} − ${a}`);
+                    s.push(`Decompor: ? = (${decomposeParts(c)}) − (${decomposeParts(a)})`);
+                    let [tC, uC] = tensUnits(c); let [tA, uA] = tensUnits(a);
+                    s.push(`Calcular por ordens: ( ${tC} − ${tA} ) <small>(dezenas)</small> + ( ${uC} − ${uA} ) <small>(unidades)</small>`);
+                    const p1 = tC - tA; const p2 = uC - uA; const res = p1 + p2;
+                    s.push(formatFinal(p1, p2, res, '-'));
+                } else {
+                    s.push(`Isolar incógnita: ? = ${a} − ${c}`);
+                    s.push(`Decompor: ? = (${decomposeParts(a)}) − (${decomposeParts(c)})`);
+                    let [tA, uA] = tensUnits(a); let [tC, uC] = tensUnits(c);
+                    s.push(`Calcular por ordens: ( ${tA} − ${tC} ) <small>(dezenas)</small> + ( ${uA} − ${uC} ) <small>(unidades)</small>`);
+                    const p1 = tA - tC; const p2 = uA - uC; const res = p1 + p2;
+                    s.push(formatFinal(p1, p2, res, '-'));
+                }
+            } else if (missing === 'c') {
+                s.push(`Isolar incógnita: ? = ${a} ${op} ${b}`);
+                s.push(`Decompor: ? = (${decomposeParts(a)}) ${op} (${decomposeParts(b)})`);
+                let [tA, uA] = tensUnits(a); let [tB, uB] = tensUnits(b);
+                if (op === '-') {
+                    s.push(`Calcular por ordens: ( ${tA} − ${tB} ) <small>(dezenas)</small> + ( ${uA} − ${uB} ) <small>(unidades)</small>`);
+                    const p1 = tA - tB; const p2 = uA - uB; const res = p1 + p2;
+                    s.push(formatFinal(p1, p2, res, '-'));
+                } else {
+                    s.push(`Calcular por ordens: ( ${tA} + ${tB} ) <small>(dezenas)</small> + ( ${uA} + ${uB} ) <small>(unidades)</small>`);
+                    const p1 = tA + tB; const p2 = uA + uB; const res = p1 + p2;
+                    s.push(formatFinal(p1, p2, res, '+'));
+                }
+            }
+            return s;
+        }
+
+        function showStep() {
+            if (currentStep === 0) { steps = buildSteps(); output.innerHTML = ''; }
+            if (currentStep < steps.length) {
+                const div = document.createElement('div');
+                div.className = 'step-card';
+                div.innerHTML = `<strong>Passo ${currentStep + 1}:</strong> ${steps[currentStep]}`;
+                output.appendChild(div);
+                currentStep++;
+                if (currentStep === steps.length) nextBtn.textContent = 'Novo exercício 🔁';
+            } else {
+                nextBtn.textContent = 'Próximo passo ▶️';
+                output.innerHTML = '';
+                setupInputs(mode === 'manual');
+            }
+        }
+
+        document.getElementById('autoMode').addEventListener('click', () => { mode = 'auto'; setupInputs(false); });
+        document.getElementById('manualMode').addEventListener('click', () => {
+            mode = 'manual'; inputZone.innerHTML = ''; output.innerHTML = ''; nextBtn.disabled = false;
+            inputZone.innerHTML = `
+  <input type="number" id="aVal" placeholder="A"/> 
+  <select id="opSel"><option value="+">+</option><option value="-">-</option></select>
+  <input type="number" id="bVal" placeholder="B"/> =
+  <input type="number" id="cVal" placeholder="C"/>
+  <button class="new-btn" id="goManual">Calcular</button>
+`;
+            document.getElementById('goManual').onclick = startManual;
+        });
+        nextBtn.addEventListener('click', showStep);
+    </script>
+</body>
+
+</html>
